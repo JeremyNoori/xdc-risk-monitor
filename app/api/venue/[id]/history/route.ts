@@ -30,8 +30,14 @@ async function fetchFromDb(exchangeId: number, days: number) {
 
   if (volumes.length === 0) return null;
 
-  return volumes.map((v, i) => {
-    const r = reserves[i];
+  // Index reserves by their ISO timestamp so we can join without relying on
+  // array position (the two queries may return different numbers of rows).
+  const reserveByTime = new Map(
+    reserves.map((r) => [r.createdAt.toISOString(), r])
+  );
+
+  return volumes.map((v) => {
+    const r = reserveByTime.get(v.createdAt.toISOString());
     return {
       date: v.createdAt.toISOString(),
       rank: v.rank,
