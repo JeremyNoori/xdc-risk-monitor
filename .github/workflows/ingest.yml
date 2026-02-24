@@ -1,0 +1,37 @@
+name: XDC Risk Monitor – Scheduled Ingestion
+
+on:
+  schedule:
+    # Every 2 hours UTC
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+    # Manual trigger from GitHub UI
+
+jobs:
+  trigger-ingestion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger ingestion run
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${APP_URL}/api/jobs/run" \
+            -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP Status: ${HTTP_STATUS}"
+          cat /tmp/response.json
+          echo ""
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Ingestion run completed successfully."
+          elif [ "$HTTP_STATUS" -eq 429 ]; then
+            echo "Rate limited — a run was triggered recently. This is OK."
+          else
+            echo "Ingestion run failed with status ${HTTP_STATUS}."
+            exit 1
+          fi

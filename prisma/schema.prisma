@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RunStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+enum RiskTier {
+  HIGH
+  MODERATE
+  LOW
+  UNKNOWN
+}
+
+model Run {
+  id              String           @id @default(cuid())
+  startedAt       DateTime         @default(now())
+  finishedAt      DateTime?
+  status          RunStatus        @default(SUCCESS)
+  errorMessage    String?
+  cmcCreditsUsed  Int?
+  venueSnapshots  VenueSnapshot[]
+  reserveSnapshots ReserveSnapshot[]
+  pairSnapshots   PairSnapshot[]
+
+  @@index([startedAt])
+}
+
+model VenueSnapshot {
+  id             String   @id @default(cuid())
+  runId          String
+  run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  exchangeId     Int
+  exchangeName   String
+  rank           Int
+  volume24hUsd   Decimal  @db.Decimal(30, 8)
+  createdAt      DateTime @default(now())
+
+  @@index([exchangeId, createdAt])
+  @@index([runId])
+}
+
+model ReserveSnapshot {
+  id              String   @id @default(cuid())
+  runId           String
+  run             Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  exchangeId      Int
+  exchangeName    String
+  reserveXdc      Decimal? @db.Decimal(30, 8)
+  reserveUsd      Decimal? @db.Decimal(30, 8)
+  coverageRatio   Decimal? @db.Decimal(20, 8)
+  riskTier        RiskTier
+  createdAt       DateTime @default(now())
+
+  @@index([exchangeId, createdAt])
+  @@index([runId])
+}
+
+model PairSnapshot {
+  id             String   @id @default(cuid())
+  runId          String
+  run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  exchangeId     Int
+  marketPair     String
+  volume24hUsd   Decimal  @db.Decimal(30, 8)
+  createdAt      DateTime @default(now())
+
+  @@index([exchangeId, createdAt])
+  @@index([runId])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
