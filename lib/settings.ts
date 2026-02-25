@@ -32,13 +32,9 @@ export async function getAllSettings(): Promise<
     { configured: boolean; source: "database" | "env" | "none" }
   > = {};
 
-  let dbSettings: Map<string, string> = new Map();
-  try {
-    const rows = await prisma.setting.findMany();
-    dbSettings = new Map(rows.map((r) => [r.key, r.value]));
-  } catch {
-    // DB not available
-  }
+  // Let this throw if DB/tables are unavailable — caller handles it
+  const rows = await prisma.setting.findMany();
+  const dbSettings = new Map(rows.map((r) => [r.key, r.value]));
 
   for (const key of SETTING_KEYS) {
     const dbVal = dbSettings.get(key);
