@@ -43,11 +43,7 @@ async function isAuthorized(req: NextRequest): Promise<boolean> {
   return false;
 }
 
-export async function GET(req: NextRequest) {
-  if (!(await isAuthorized(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(_req: NextRequest) {
   try {
     const settings = await getAllSettings();
     return NextResponse.json({ settings });
