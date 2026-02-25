@@ -35,6 +35,7 @@ export default function SettingsPage() {
 
   // Form state for each editable key
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [sessionToken, setSessionToken] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<Record<string, string>>({});
 
@@ -63,9 +64,14 @@ export default function SettingsPage() {
     setSaveMsg({});
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (sessionToken) headers["Authorization"] = `Bearer ${sessionToken}`;
+
       const res = await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ key, value }),
       });
       const data = await res.json();
@@ -135,6 +141,31 @@ export default function SettingsPage() {
           on your host to enable saving settings.
         </div>
       )}
+
+      {/* Session token — needed to authenticate POST requests when ADMIN_TOKEN is set */}
+      <div
+        className="card"
+        style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", alignItems: "center" }}
+      >
+        <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+          Admin token (for saving):
+        </label>
+        <input
+          type="password"
+          placeholder="Enter ADMIN_TOKEN to authenticate saves…"
+          value={sessionToken}
+          onChange={(e) => setSessionToken(e.target.value)}
+          style={{
+            flex: 1,
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+            padding: "0.5rem 0.75rem",
+            borderRadius: "0.5rem",
+            fontSize: "0.875rem",
+          }}
+        />
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {keys.map((key) => {
@@ -326,7 +357,7 @@ function TriggerButton() {
           `Run ${data.runId} completed — status: ${data.status}, venues: ${data.venueCount}`
         );
       } else {
-        setStatus(`Error: ${data.error || `HTTP ${res.status}`}`);
+        setStatus(`Error: ${data.errorMessage || data.error || `HTTP ${res.status}`}`);
       }
     } catch (e) {
       setStatus(`Error: ${e instanceof Error ? e.message : "Failed"}`);
